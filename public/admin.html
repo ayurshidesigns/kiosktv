@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Screens · Admin</title>
+<style>
+:root{--bg:#f6f2ea;--card:#fff;--ink:#23301f;--mute:#6f7869;--line:#e4ddcf;--accent:#3f6b3a;--gold:#c98b2b;--bad:#b3402f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:20px;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+h1{font-size:18px;margin:0;font-weight:650}
+nav{display:flex;gap:4px;flex:1}
+nav button{border:0;background:none;padding:8px 14px;border-radius:8px;font:inherit;color:var(--mute);cursor:pointer}
+nav button.on{background:#e9f0e4;color:var(--accent);font-weight:600}
+main{max-width:1100px;margin:24px auto;padding:0 20px}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.btn{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radius:8px;font-weight:600}
+.ghost{background:none;border:1px solid var(--line);padding:6px 10px;border-radius:8px;color:var(--ink)}
+.danger{color:var(--bad)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+h2{margin:0;font-size:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+.card,.mcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:8px}
+.row>input.name{flex:1;font-weight:600;font-size:16px;border:1px solid transparent;border-radius:6px;padding:6px}
+.row>input.name:hover,.row>input.name:focus{border-color:var(--line)}
+.dot{width:10px;height:10px;border-radius:50%;background:#c8c2b4;flex:none}
+.dot.on{background:#3fa34d;box-shadow:0 0 0 3px #3fa34d33}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute)}
+label.inl{flex-direction:row;align-items:center;font-size:13px}
+select,input[type=text],input[type=number],input:not([type]){border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);font-size:14px}
+input[type=number]{width:70px;padding:5px 6px}
+small{color:var(--mute)}
+.top{display:flex;gap:12px;align-items:center}
+.pw{width:72px;height:72px;display:grid;place-items:center;flex:none;background:#f1ece0;border-radius:8px}
+.prev{background:#23301f;border-radius:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.mcard{padding:10px}
+.mcard img,.mcard video,.pick img,.pick video{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:#ddd;display:block}
+.mn{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:12px;color:var(--mute);flex:1}
+.mcard .row{justify-content:space-between}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;cursor:pointer;background:#fffdf8;color:var(--accent);font-weight:600;font-size:14px;margin-bottom:16px}
+.drop:hover{border-color:var(--accent)}
+.pl{display:grid;grid-template-columns:230px 1fr;gap:20px}
+.plist{display:flex;flex-direction:column;gap:6px}
+.plist button{text-align:left;padding:10px 12px;border:1px solid var(--line);background:#fff;border-radius:8px}
+.plist button.on{border-color:var(--accent);background:#e9f0e4;font-weight:600}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.item{display:flex;align-items:center;gap:10px;padding:6px;border:1px solid var(--line);border-radius:10px}
+.item .n{width:22px;text-align:center;color:var(--mute);font-size:13px}
+.item img,.item video{width:64px;height:40px;object-fit:cover;border-radius:6px}
+.item .t{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick{cursor:pointer;border:2px solid transparent;border-radius:10px;padding:4px;background:none;text-align:left}
+.pick:hover{border-color:var(--accent)}
+.empty{color:var(--mute);padding:20px 0}
+#login{max-width:340px;margin:12vh auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px;display:flex;flex-direction:column;gap:14px}
+dialog{border:0;border-radius:14px;padding:22px;width:340px;box-shadow:0 20px 60px #0004}
+dialog form{display:flex;flex-direction:column;gap:14px}
+dialog .code{font-size:28px;letter-spacing:.2em;text-align:center;font-weight:700}
+#perr{color:var(--bad);font-size:13px;min-height:16px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#23301f;color:#fff;padding:10px 18px;border-radius:10px;transition:.25s;z-index:99;max-width:90vw}
+#toast.show{transform:translateX(-50%)}
+[hidden]{display:none!important}
+@media(max-width:700px){.pl{grid-template-columns:1fr}header{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+
+<div id="login" hidden>
+  <h1>Screens admin</h1>
+  <form id="lf" style="display:flex;flex-direction:column;gap:12px">
+    <input type="password" id="pw" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn">Sign in</button>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>📺 Screens</h1>
+    <nav>
+      <button data-act="tab" data-tab="screens">Screens</button>
+      <button data-act="tab" data-tab="playlists">Playlists</button>
+      <button data-act="tab" data-tab="media">Media</button>
+    </nav>
+    <button class="ghost" data-act="logout">Log out</button>
+  </header>
+  <main id="view"></main>
+</div>
+
+<dialog id="dlg">
+  <form id="pf">
+    <h2>Add screen</h2>
+    <small>Open the player URL on the TV and enter the 6-digit code it shows.</small>
+    <input id="code" class="code" inputmode="numeric" maxlength="6" placeholder="000000" required>
+    <input id="sname" placeholder="Screen name (e.g. Reception)">
+    <div id="perr"></div>
+    <div class="row" style="justify-content:flex-end">
+      <button type="button" class="ghost" data-act="cancel">Cancel</button>
+      <button class="btn">Pair</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast"></div>
+
+<script src="/blob-client.js"></script>
+<script>
+let S = { screens: [], media: [], playlists: [] }, tab = 'screens', sel = null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const RATIOS = [['fill','Fill screen (no bars)'],['16:9','16:9 · Landscape TV'],['9:16','9:16 · Portrait'],['16:10','16:10'],['4:3','4:3'],['3:4','3:4 · Portrait'],['21:9','21:9 · Ultrawide'],['1:1','1:1 · Square']];
+const FITS = [['contain','Fit (show everything)'],['cover','Fill (crop edges)'],['fill','Stretch']];
+const ROTS = [[0,'None'],[90,'90°'],[180,'180°'],[270,'270°']];
+const opts = (l, sel) => l.map(([v, t]) => `<option value="${v}"${String(v) === String(sel) ? ' selected' : ''}>${t}</option>`).join('');
+const M = id => S.media.find(m => m.id == id);
+const cur = () => S.playlists.find(p => p.id == sel);
+const ago = s => s < 3600 ? Math.max(1, Math.round(s / 60)) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago';
+
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 4000); }
+function showLogin() { $('#app').hidden = true; $('#login').hidden = false; }
+async function api(a, d) {
+  const r = await fetch('/api/admin/' + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d || {}) });
+  if (r.status === 401) { showLogin(); throw new Error('auth'); }
+  const j = await r.json().catch(() => ({ error: 'Server error' }));
+  if (j.error) { toast(j.error); throw new Error(j.error); }
+  return j;
+}
+async function load() { S = await api('state'); }
+async function boot() { try { await load(); $('#login').hidden = true; $('#app').hidden = false; render(); } catch (e) {} }
+
+/* ---------- Views ---------- */
+function thumb(m) {
+  return m.type === 'image'
+    ? `<img src="${m.url}" loading="lazy" alt="">`
+    : `<video src="${m.url}#t=0.5" preload="metadata" muted></video>`;
+}
+
+function screensView() {
+  const cards = S.screens.map(s => {
+    const r = s.aspect_ratio === 'fill' ? 16 / 9 : s.aspect_ratio.split(':').reduce((a, b) => a / b);
+    const w = r >= 1 ? 64 : Math.round(64 * r), h = r >= 1 ? Math.round(64 / r) : 64;
+    const on = s.seen_ago < 90;
+    return `<div class="card scr" data-id="${s.id}">
+      <div class="row"><span class="dot ${on ? 'on' : ''}"></span><input class="name" data-f="name" value="${esc(s.name)}"><button class="ghost danger" data-act="delScreen">Remove</button></div>
+      <div class="top">
+        <div class="pw"><div class="prev" style="width:${w}px;height:${h}px"></div></div>
+        <small>${on ? 'Online' : 'Offline · seen ' + ago(s.seen_ago)}</small>
+      </div>
+      <label>Playlist<select data-f="playlist_id"><option value="">— none —</option>${S.playlists.map(p => `<option value="${p.id}"${p.id == s.playlist_id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
+      <label>Aspect ratio<select data-f="aspect_ratio">${opts(RATIOS, s.aspect_ratio)}</select></label>
+      <label>Media fit<select data-f="fit">${opts(FITS, s.fit)}</select></label>
+      <label>Rotation (for portrait-mounted TVs)<select data-f="rotation">${opts(ROTS, s.rotation)}</select></label>
+    </div>`;
+  }).join('');
+  return `<div class="bar"><h2>Screens</h2><button class="btn" data-act="addScreen">+ Add screen</button></div>
+    ${cards ? `<div class="cards">${cards}</div>` : '<p class="empty">No screens yet. Open the player page on a TV, then click “Add screen” and enter the code it shows.</p>'}`;
+}
+
+function mediaCard(m) {
+  return `<div class="mcard" data-mid="${m.id}">${thumb(m)}
+    <div class="mn" title="${esc(m.original_name)}">${esc(m.original_name)}</div>
+    <div class="row">${m.type === 'image'
+      ? `<label class="inl">Show for&nbsp;<input type="number" min="1" max="3600" value="${m.duration}" data-f="mdur">&nbsp;s</label>`
+      : '<span class="tag">Video · plays to the end</span>'}
+      <button class="ghost danger" data-act="delMedia">✕</button></div></div>`;
+}
+
+function mediaView() {
+  const local = S.media.filter(m => m.source === 'local'), cloud = S.media.filter(m => m.source !== 'local');
+  const grid = l => l.length ? `<div class="grid">${l.map(mediaCard).join('')}</div>` : '<p class="empty">Nothing here yet.</p>';
+  return `<div class="bar"><h2>Media library</h2></div>
+    <div class="panel" style="margin-bottom:22px">
+      <h3 style="margin:0;font-size:16px">Local files · stored on the TVs</h3>
+      <small>Nothing is uploaded here, only file names are saved. Zip the files, load the ZIP onto each TV once (see LOCAL-MEDIA.md), and the TVs play them from their own storage.</small>
+      <label>Folder address on the TV<input data-f="localbase" value="${esc(S.local_base)}"></label>
+      <label class="drop" style="margin:0">+ Pick the files you put in the ZIP<input type="file" id="lfile" multiple accept="image/*,video/mp4,video/webm" hidden></label>
+      ${grid(local)}
+    </div>
+    <div class="panel">
+      <h3 style="margin:0;font-size:16px">Cloud uploads · optional</h3>
+      <label class="drop" style="margin:0">+ Upload images or videos (JPG, PNG, WebP, GIF, MP4, WebM)<input type="file" id="file" multiple accept="image/*,video/mp4,video/webm" hidden></label>
+      <div id="upl" class="tag"></div>
+      ${grid(cloud)}
+    </div>`;
+}
+
+async function addLocal(files) {
+  const list = [...files]; if (!list.length) return;
+  const odd = list.filter(f => /[^\x20-\x7E]/.test(f.name)).map(f => f.name);
+  const r = await api('media_add_local', { files: list.map(f => ({ name: f.name, type: f.type.startsWith('video/') ? 'video' : 'image' })) });
+  toast(`${r.added} file${r.added === 1 ? '' : 's'} added` + (odd.length ? ' · Rename files with non-English characters before zipping: ' + odd.join(', ') : ''));
+  await load(); render();
+}
+
+function playlistsView() {
+  const p = cur();
+  const list = S.playlists.map(x => `<button class="${x.id == sel ? 'on' : ''}" data-act="selPl" data-id="${x.id}">${esc(x.name)}</button>`).join('');
+  let right = '<div class="panel"><p class="empty">Select or create a playlist.</p></div>';
+  if (p) {
+    const used = S.screens.filter(s => s.playlist_id == p.id).length;
+    const rows = p.items.map((it, i) => {
+      const m = M(it.media_id); if (!m) return '';
+      return `<div class="item" data-i="${i}"><span class="n">${i + 1}</span>${thumb(m)}<span class="t">${esc(m.original_name)}</span>
+        ${m.type === 'image' ? `<label class="inl"><input type="number" min="1" max="3600" placeholder="${m.duration}" value="${it.duration ?? ''}" data-f="idur">&nbsp;s</label>` : '<small>video</small>'}
+        <button class="ghost" data-act="up">↑</button><button class="ghost" data-act="down">↓</button><button class="ghost danger" data-act="rm">✕</button></div>`;
+    }).join('');
+    right = `<div class="panel">
+      <div class="row"><input class="name" style="flex:1;font-size:18px;font-weight:600" data-f="plname" value="${esc(p.name)}"><button class="ghost danger" data-act="delPl">Delete</button></div>
+      <small>Plays top to bottom, then loops. Used by ${used} screen${used === 1 ? '' : 's'}. Leave the seconds box empty to use the media’s default.</small>
+      <div style="display:flex;flex-direction:column;gap:8px">${rows || '<p class="empty">Empty — add media below.</p>'}</div>
+      <h3 style="margin:6px 0 0;font-size:15px">Add media</h3>
+      <div class="grid">${S.media.map(m => `<button class="pick" data-act="pick" data-mid="${m.id}">${thumb(m)}<div class="mn">${esc(m.original_name)}</div></button>`).join('') || '<p class="empty">Upload media first.</p>'}</div>
+    </div>`;
+  }
+  return `<div class="bar"><h2>Playlists</h2></div><div class="pl"><div class="plist">${list}<button class="btn" data-act="newPl">+ New playlist</button></div>${right}</div>`;
+}
+
+function render() {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  $('#view').innerHTML = { screens: screensView, media: mediaView, playlists: playlistsView }[tab]();
+}
+
+/* ---------- Actions ---------- */
+async function saveItems(p) { await api('playlist_set_items', { id: p.id, items: p.items }); await load(); }
+
+async function upload(files) {
+  const list = [...files], bad = [];
+  for (let n = 0; n < list.length; n++) {
+    const f = list[n], type = f.type.startsWith('video/') ? 'video' : 'image';
+    const say = t => { if ($('#upl')) $('#upl').textContent = t; };
+    try {
+      say(`Uploading ${f.name} (${n + 1}/${list.length})…`);
+      const bl = await BlobClient.upload(f.name, f, {
+        access: 'public', handleUploadUrl: '/api/upload', multipart: f.size > 20e6,
+        onUploadProgress: p => say(`Uploading ${f.name} (${n + 1}/${list.length}) ${Math.round(p.percentage)}%`)
+      });
+      await api('media_add', { url: bl.url, type, original_name: f.name });
+    } catch (e) { bad.push(f.name + ': ' + (e.message || 'failed')); }
+  }
+  if (bad.length) toast(bad.join(' · '));
+  await load(); render();
+}
+
+document.addEventListener('change', async e => {
+  const t = e.target, f = t.dataset.f;
+  if (t.id === 'file') return upload(t.files);
+  if (t.id === 'lfile') return addLocal(t.files).catch(() => {});
+  if (!f) return;
+  try {
+    if (f === 'localbase') { await api('setting_set', { value: t.value }); await load(); return render(); }
+    if (f === 'mdur') { await api('media_update', { id: t.closest('[data-mid]').dataset.mid, duration: t.value }); return load(); }
+    const sc = t.closest('.scr');
+    if (sc) { const d = { id: sc.dataset.id }; sc.querySelectorAll('[data-f]').forEach(x => d[x.dataset.f] = x.value); await api('screen_update', d); await load(); return render(); }
+    if (f === 'idur') { const p = cur(); p.items[+t.closest('[data-i]').dataset.i].duration = t.value === '' ? null : +t.value; return saveItems(p); }
+    if (f === 'plname') { await api('playlist_rename', { id: sel, name: t.value }); await load(); render(); }
+  } catch (_) {}
+});
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  try {
+    if (act === 'tab') { tab = b.dataset.tab; return render(); }
+    if (act === 'logout') { await api('logout'); return showLogin(); }
+    if (act === 'addScreen') { $('#perr').textContent = ''; return $('#dlg').showModal(); }
+    if (act === 'cancel') return $('#dlg').close();
+    if (act === 'delScreen') { if (!confirm('Remove this screen? The TV will show a new pairing code.')) return; await api('screen_delete', { id: b.closest('.scr').dataset.id }); }
+    else if (act === 'delMedia') { if (!confirm('Delete this file? It will be removed from all playlists.')) return; await api('media_delete', { id: b.closest('[data-mid]').dataset.mid }); }
+    else if (act === 'selPl') { sel = +b.dataset.id; return render(); }
+    else if (act === 'newPl') { const n = prompt('Playlist name'); if (!n) return; sel = (await api('playlist_create', { name: n })).id; }
+    else if (act === 'delPl') { if (!confirm('Delete this playlist? Screens using it will go blank.')) return; await api('playlist_delete', { id: sel }); sel = null; }
+    else {
+      const p = cur(); if (!p) return;
+      const row = b.closest('[data-i]'), i = row ? +row.dataset.i : -1;
+      if (act === 'up' && i > 0) [p.items[i - 1], p.items[i]] = [p.items[i], p.items[i - 1]];
+      else if (act === 'down' && i < p.items.length - 1) [p.items[i + 1], p.items[i]] = [p.items[i], p.items[i + 1]];
+      else if (act === 'rm') p.items.splice(i, 1);
+      else if (act === 'pick') p.items.push({ media_id: +b.dataset.mid, duration: null });
+      else return;
+      render(); return saveItems(p);
+    }
+    await load(); render();
+  } catch (_) {}
+});
+
+$('#pf').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await api('screen_pair', { code: $('#code').value, name: $('#sname').value });
+    $('#dlg').close(); $('#pf').reset(); await load(); render();
+  } catch (err) { $('#perr').textContent = err.message; }
+};
+$('#lf').onsubmit = async e => { e.preventDefault(); try { await api('login', { password: $('#pw').value }); $('#pw').value = ''; boot(); } catch (_) {} };
+
+setInterval(async () => {
+  if (tab !== 'screens' || $('#dlg').open || $('#app').hidden || document.activeElement.matches('input,select')) return;
+  try { await load(); render(); } catch (_) {}
+}, 30000);
+
+boot();
+</script>
+</body>
+</html>

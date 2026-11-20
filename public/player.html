@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TV Player</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none;font-family:system-ui,sans-serif;color:#fff}
+#stage{position:absolute;left:50%;top:50%;background:#000;overflow:hidden}
+#stage>*{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
+#stage>.on{opacity:1}
+#msg{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:2.5vh;background:#14201a;text-align:center;z-index:2}
+#msg.show{display:flex}
+#msg .code{font-size:14vh;font-weight:700;letter-spacing:.12em;color:#e8c27a;font-variant-numeric:tabular-nums}
+#msg h1{font-size:4.5vh;margin:0;font-weight:500}
+#msg p{font-size:2.6vh;margin:0;opacity:.7}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="msg"></div>
+<script>
+const API = '/api/player', POLL = 30000;
+const stage = document.getElementById('stage'), msg = document.getElementById('msg');
+let fails = 0, items = [], idx = -1, hash = null, settings = {}, timer, stall, pollT, token = 0, warm = null;
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const deviceId = (() => {
+  let d = localStorage.getItem('tv_device');
+  if (!d) {
+    const b = new Uint8Array(16); crypto.getRandomValues(b);
+    d = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem('tv_device', d);
+  }
+  return d;
+})();
+
+function showMsg(html) { msg.innerHTML = html; msg.classList.add('show'); }
+function hideMsg() { msg.classList.remove('show'); }
+
+/* Stage = chosen aspect ratio, centred (letterboxed) and optionally rotated */
+function layout() {
+  const rot = +settings.rotation || 0, swap = rot === 90 || rot === 270;
+  const EW = swap ? innerHeight : innerWidth, EH = swap ? innerWidth : innerHeight;
+  let w = EW, h = EH;
+  const ar = settings.aspect_ratio;
+  if (ar && ar !== 'fill') {
+    const [a, b] = ar.split(':').map(Number), r = a / b;
+    if (EW / EH > r) { h = EH; w = EH * r; } else { w = EW; h = EW / r; }
+  }
+  stage.style.width = w + 'px';
+  stage.style.height = h + 'px';
+  stage.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`;
+}
+addEventListener('resize', layout);
+
+function build(it) {
+  const el = document.createElement(it.type === 'video' ? 'video' : 'img');
+  el.style.objectFit = settings.fit || 'contain';
+  if (it.type === 'video') { el.muted = true; el.setAttribute('muted', ''); el.playsInline = true; el.preload = 'auto'; }
+  el.src = it.url;
+  return el;
+}
+function ready(el) {
+  return new Promise((res, rej) => {
+    const t = setTimeout(rej, 15000), ok = () => { clearTimeout(t); res(); };
+    if (el.tagName === 'IMG') {
+      if (el.complete && el.naturalWidth) ok(); else { el.onload = ok; el.onerror = () => rej(); }
+    } else {
+      if (el.readyState >= 3) ok(); else { el.oncanplay = ok; el.onerror = () => rej(); }
+    }
+  });
+}
+
+async function play() {
+  clearTimeout(timer); clearTimeout(stall);
+  const my = ++token;
+  if (!items.length) return;
+  idx = (idx + 1) % items.length;
+  const it = items[idx];
+  const el = (warm && warm.i === idx && warm.h === hash) ? warm.el : build(it);
+  warm = null;
+  try { await ready(el); fails = 0; } catch (e) {
+    if (my === token) {
+      if (++fails >= items.length) showMsg(`<h1>Can't load media</h1><p>${esc(it.url)}</p><p>Check the folder address in Admin → Media</p>`);
+      timer = setTimeout(play, fails >= items.length ? 10000 : 1000);
+    }
+    return;
+  }
+  if (my !== token) return;
+  if (msg.classList.contains('show')) hideMsg();
+
+  const old = [...stage.children];
+  stage.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el.classList.add('on');
+    old.forEach(o => { o.classList.remove('on'); setTimeout(() => { o.pause && o.pause(); o.remove(); }, 700); });
+  }));
+
+  if (it.type === 'video') {
+    el.currentTime = 0;
+    if (items.length === 1) el.loop = true;
+    el.onended = play;
+    el.onerror = play;
+    el.onwaiting = () => { clearTimeout(stall); stall = setTimeout(play, 20000); };
+    el.onplaying = () => clearTimeout(stall);
+    const p = el.play();
+    if (p && p.catch) p.catch(() => { timer = setTimeout(play, 2000); });
+  } else if (items.length > 1) {
+    timer = setTimeout(play, (it.duration || 10) * 1000);
+  }
+  if (items.length > 1) {                       // warm the next item
+    const n = (idx + 1) % items.length;
+    warm = { i: n, h: hash, el: build(items[n]) };
+  }
+}
+
+function start() {
+  token++; fails = 0; clearTimeout(timer); clearTimeout(stall); warm = null;
+  [...stage.children].forEach(c => { c.pause && c.pause(); c.remove(); });
+  idx = -1;
+  if (!items.length) { showMsg(`<h1>${esc(settings.name || '')}</h1><p>No playlist assigned to this screen yet</p>`); return; }
+  hideMsg(); play();
+}
+
+/* Keep media on the device so playback survives Wi-Fi drops */
+async function cacheMedia(list) {
+  if (!('caches' in window)) return;
+  try {
+    const c = await caches.open('tv-media-v1');
+    const urls = new Set(list.filter(i => !i.local).map(i => new URL(i.url, location.href).href));
+    for (const u of urls) {
+      if (await c.match(u)) continue;
+      try { const r = await fetch(u); if (r.status === 200) await c.put(u, r); } catch (e) {}
+    }
+    for (const k of await c.keys()) if (!urls.has(k.url)) await c.delete(k);
+  } catch (e) {}
+}
+
+async function poll() {
+  let next = POLL;
+  try {
+    const r = await fetch(API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: deviceId }), cache: 'no-store'
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    if (!d.paired) {
+      hash = null; token++; clearTimeout(timer); clearTimeout(stall);
+      [...stage.children].forEach(c => c.remove());
+      showMsg(`<h1>Pair this screen</h1><div class="code">${esc(d.code)}</div><p>In the admin panel choose Screens → Add screen and enter this code</p>`);
+      next = 5000;
+    } else if (d.hash !== hash) {
+      hash = d.hash; settings = d; items = d.items;
+      layout(); cacheMedia(items); start();
+      try { localStorage.setItem('tv_last', JSON.stringify(d)); } catch (_) {}
+    }
+  } catch (e) {
+    if (hash === null) {   // offline at boot: run from the last playlist we saw
+      let last = null; try { last = JSON.parse(localStorage.getItem('tv_last')); } catch (_) {}
+      if (last && last.paired) { hash = last.hash; settings = last; items = last.items; layout(); start(); next = 15000; }
+      else { showMsg('<h1>Connecting…</h1>'); next = 5000; }
+    }
+  }
+  clearTimeout(pollT); pollT = setTimeout(poll, next);
+}
+
+/* Kiosk niceties */
+let wake;
+async function keepAwake() { try { wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
+keepAwake();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+setTimeout(() => location.reload(), 12 * 3600 * 1000);   // fresh start twice a day
+layout(); poll();
+</script>
+</body>
+</html>
